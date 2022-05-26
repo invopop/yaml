@@ -6,8 +6,6 @@
 // means that it effectively reuses the JSON struct tags as well as the custom
 // JSON methods MarshalJSON and UnmarshalJSON unlike go-yaml.
 //
-// See also http://ghodss.com/2014/the-right-way-to-handle-yaml-in-golang
-//
 package yaml // import "github.com/invopop/yaml"
 
 import (
