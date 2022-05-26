@@ -24,5 +24,5 @@ jobs:
         uses: anothrNick/github-tag-action@1.36.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_BRANCHES: release
+          RELEASE_BRANCHES: main
           WITH_V: true
