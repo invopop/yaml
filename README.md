@@ -2,7 +2,7 @@
 
 [![Lint](https://github.com/invopop/yaml/actions/workflows/lint.yaml/badge.svg)](https://github.com/invopop/yaml/actions/workflows/lint.yaml)
 [![Test Go](https://github.com/invopop/yaml/actions/workflows/test.yaml/badge.svg)](https://github.com/invopop/yaml/actions/workflows/test.yaml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/invopop/yaml)](https://goreportcard.com/report/github.com/yaml/jsonschema)
+[![Go Report Card](https://goreportcard.com/badge/github.com/invopop/yaml)](https://goreportcard.com/report/github.com/invopop/yaml)
 ![Latest Tag](https://img.shields.io/github/v/tag/invopop/yaml)
 
 ## Introduction
