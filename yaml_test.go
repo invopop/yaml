@@ -83,7 +83,7 @@ func TestUnmarshal(t *testing.T) {
 
 	y = []byte("a:\n  - b: abc\n    c: def\n  - b: 123\n    c: 456\n")
 	s3 := UnmarshalSlice{}
-	e3 := UnmarshalSlice{[]NestedSlice{NestedSlice{"abc", strPtr("def")}, NestedSlice{"123", strPtr("456")}}}
+	e3 := UnmarshalSlice{[]NestedSlice{{"abc", strPtr("def")}, {"123", strPtr("456")}}}
 	unmarshalEqual(t, y, &s3, &e3)
 
 	y = []byte("a:\n  b: 1")
@@ -102,8 +102,8 @@ b:
 	}
 	s5 := map[string]*NamedThing{}
 	e5 := map[string]*NamedThing{
-		"a": &NamedThing{Name: "TestA"},
-		"b": &NamedThing{Name: "TestB"},
+		"a": {Name: "TestA"},
+		"b": {Name: "TestB"},
 	}
 	unmarshalEqual(t, y, &s5, &e5)
 }
@@ -164,7 +164,7 @@ func prettyFunctionName(opts []JSONOpt) []string {
 	return r
 }
 
-func unmarshalEqual(t *testing.T, y []byte, s, e interface{}, opts ...JSONOpt) {
+func unmarshalEqual(t *testing.T, y []byte, s, e interface{}, opts ...JSONOpt) { //nolint:unparam
 	t.Helper()
 	err := Unmarshal(y, s, opts...)
 	if err != nil {
@@ -180,9 +180,9 @@ func unmarshalEqual(t *testing.T, y []byte, s, e interface{}, opts ...JSONOpt) {
 // TestUnmarshalStrict tests that we return an error on ambiguous YAML.
 func TestUnmarshalStrict(t *testing.T) {
 	for _, tc := range []struct {
-		yaml        []byte
-		want        UnmarshalString
-		wantErr     string
+		yaml    []byte
+		want    UnmarshalString
+		wantErr string
 	}{
 		{
 			yaml: []byte("a: 1"),
@@ -200,18 +200,18 @@ func TestUnmarshalStrict(t *testing.T) {
 		},
 		{
 			// Declaring `a` twice produces an error.
-			yaml:        []byte("a: 1\na: 2"),
-			wantErr:     `key "a" already set in map`,
+			yaml:    []byte("a: 1\na: 2"),
+			wantErr: `key "a" already set in map`,
 		},
 		{
 			// Not ignoring first declaration of A with wrong type.
-			yaml:        []byte("a: [1,2,3]\na: value-of-a"),
-			wantErr:     `key "a" already set in map`,
+			yaml:    []byte("a: [1,2,3]\na: value-of-a"),
+			wantErr: `key "a" already set in map`,
 		},
 		{
 			// Declaring field `true` twice.
-			yaml:        []byte("true: string-value-of-yes\ntrue: 1"),
-			wantErr:     `key true already set in map`,
+			yaml:    []byte("true: string-value-of-yes\ntrue: 1"),
+			wantErr: `key true already set in map`,
 		},
 		{
 			// In YAML, `YES` is a Boolean true.
