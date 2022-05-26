@@ -6,9 +6,7 @@
 // means that it effectively reuses the JSON struct tags as well as the custom
 // JSON methods MarshalJSON and UnmarshalJSON unlike go-yaml.
 //
-// See also http://ghodss.com/2014/the-right-way-to-handle-yaml-in-golang
-//
-package yaml  // import "github.com/ghodss/yaml"
+package yaml // import "github.com/invopop/yaml"
 
 import (
 	"bytes"
@@ -21,7 +19,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Marshals the object into JSON then converts JSON to YAML and returns the
+// Marshal the object into JSON then converts JSON to YAML and returns the
 // YAML.
 func Marshal(o interface{}) ([]byte, error) {
 	j, err := json.Marshal(o)
@@ -83,7 +81,7 @@ func jsonUnmarshal(r io.Reader, o interface{}, opts ...JSONOpt) error {
 	return nil
 }
 
-// Convert JSON to YAML.
+// JSONToYAML converts JSON to YAML.
 func JSONToYAML(j []byte) ([]byte, error) {
 	// Convert the JSON to an object.
 	var jsonObj interface{}
@@ -113,13 +111,13 @@ func JSONToYAML(j []byte) ([]byte, error) {
 //   encoded data makes it all the way through to the JSON.
 //
 // For strict decoding of YAML, use YAMLToJSONStrict.
-func YAMLToJSON(y []byte) ([]byte, error) {
+func YAMLToJSON(y []byte) ([]byte, error) { //nolint:revive
 	return yamlToJSON(y, nil, yaml.Unmarshal)
 }
 
 // YAMLToJSONStrict is like YAMLToJSON but enables strict YAML decoding,
 // returning an error on any duplicate field names.
-func YAMLToJSONStrict(y []byte) ([]byte, error) {
+func YAMLToJSONStrict(y []byte) ([]byte, error) { //nolint:revive
 	return yamlToJSON(y, nil, yaml.UnmarshalStrict)
 }
 
@@ -144,7 +142,7 @@ func yamlToJSON(y []byte, jsonTarget *reflect.Value, yamlUnmarshal func([]byte, 
 	return json.Marshal(jsonObj)
 }
 
-func convertToJSONableObject(yamlObj interface{}, jsonTarget *reflect.Value) (interface{}, error) {
+func convertToJSONableObject(yamlObj interface{}, jsonTarget *reflect.Value) (interface{}, error) { //nolint:gocyclo
 	var err error
 
 	// Resolve jsonTarget to a concrete value (i.e. not a pointer or an
@@ -210,7 +208,7 @@ func convertToJSONableObject(yamlObj interface{}, jsonTarget *reflect.Value) (in
 					keyString = "false"
 				}
 			default:
-				return nil, fmt.Errorf("Unsupported map key of type: %s, key: %+#v, value: %+#v",
+				return nil, fmt.Errorf("unsupported map key of type: %s, key: %+#v, value: %+#v",
 					reflect.TypeOf(k), k, v)
 			}
 
@@ -321,6 +319,4 @@ func convertToJSONableObject(yamlObj interface{}, jsonTarget *reflect.Value) (in
 		}
 		return yamlObj, nil
 	}
-
-	return nil, nil
 }
