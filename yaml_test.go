@@ -61,9 +61,19 @@ type NestedSlice struct {
 }
 
 func TestUnmarshal(t *testing.T) {
-	y := []byte("a: 1")
+	y := []byte(``)
 	s1 := UnmarshalString{}
-	e1 := UnmarshalString{A: "1"}
+	e1 := UnmarshalString{}
+	unmarshalEqual(t, y, &s1, &e1)
+
+	y = []byte(`{}`)
+	s1 = UnmarshalString{}
+	e1 = UnmarshalString{}
+	unmarshalEqual(t, y, &s1, &e1)
+
+	y = []byte("a: 1")
+	s1 = UnmarshalString{}
+	e1 = UnmarshalString{A: "1"}
 	unmarshalEqual(t, y, &s1, &e1)
 
 	y = []byte(`a: "1"`)
