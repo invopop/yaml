@@ -1,5 +1,5 @@
-module github.com/invopop/yaml
+module github.com/rockbears/yaml
 
-go 1.14
+go 1.18
 
-require gopkg.in/yaml.v3 v3.0.0
+require gopkg.in/yaml.v3 v3.0.1
