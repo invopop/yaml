@@ -1,9 +1,9 @@
 # YAML marshaling and unmarshaling support for Go
 
-[![Lint](https://github.com/invopop/yaml/actions/workflows/lint.yaml/badge.svg)](https://github.com/invopop/yaml/actions/workflows/lint.yaml)
-[![Test Go](https://github.com/invopop/yaml/actions/workflows/test.yaml/badge.svg)](https://github.com/invopop/yaml/actions/workflows/test.yaml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/invopop/yaml)](https://goreportcard.com/report/github.com/invopop/yaml)
-![Latest Tag](https://img.shields.io/github/v/tag/invopop/yaml)
+[![Lint](https://github.com/rockbears/yaml/actions/workflows/lint.yaml/badge.svg)](https://github.com/rockbears/yaml/actions/workflows/lint.yaml)
+[![Test Go](https://github.com/rockbears/yaml/actions/workflows/test.yaml/badge.svg)](https://github.com/rockbears/yaml/actions/workflows/test.yaml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rockbears/yaml)](https://goreportcard.com/report/github.com/rockbears/yaml)
+![Latest Tag](https://img.shields.io/github/v/tag/rockbears/yaml)
 
 ## Introduction
 
@@ -39,13 +39,13 @@ GOOD:
 To install, run:
 
 ```
-$ go get github.com/invopop/yaml
+$ go get github.com/rockbears/yaml
 ```
 
 And import using:
 
 ```
-import "github.com/invopop/yaml"
+import "github.com/rockbears/yaml"
 ```
 
 Usage is very similar to the JSON library:
@@ -56,7 +56,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/invopop/yaml"
+	"github.com/rockbears/yaml"
 )
 
 type Person struct {
@@ -100,7 +100,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/invopop/yaml"
+	"github.com/rockbears/yaml"
 )
 
 func main() {
