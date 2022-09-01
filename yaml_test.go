@@ -74,23 +74,23 @@ func TestUnmarshal(t *testing.T) {
 
 	y = []byte("a: 1")
 	s1 = UnmarshalString{}
-	e11 := UnmarshalString{A: "1"}
-	unmarshalEqual(t, y, &s1, &e11)
+	e1 := UnmarshalString{A: "1"}
+	unmarshalEqual(t, y, &s1, &e1)
 
 	y = []byte(`a: "1"`)
 	s1 = UnmarshalString{}
-	e11 = UnmarshalString{A: "1"}
-	unmarshalEqual(t, y, &s1, &e11)
+	e1 = UnmarshalString{A: "1"}
+	unmarshalEqual(t, y, &s1, &e1)
 
 	y = []byte("a: true")
 	s1 = UnmarshalString{}
-	e11 = UnmarshalString{A: "true"}
-	unmarshalEqual(t, y, &s1, &e11)
+	e1 = UnmarshalString{A: "true"}
+	unmarshalEqual(t, y, &s1, &e1)
 
 	y = []byte("a: 1")
 	s1 = UnmarshalString{}
-	e11 = UnmarshalString{A: "1"}
-	unmarshalEqual(t, y, &s1, &e11)
+	e1 = UnmarshalString{A: "1"}
+	unmarshalEqual(t, y, &s1, &e1)
 
 	y = []byte("a:\n  a: 1")
 	s2 := UnmarshalNestedString{}
