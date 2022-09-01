@@ -39,6 +39,25 @@ func Marshal(o interface{}) ([]byte, error) {
 // JSONOpt is a decoding option for decoding from JSON format.
 type JSONOpt func(*json.Decoder) *json.Decoder
 
+type Document interface {
+	interface{}
+}
+
+func UnmarshalMultipleDocuments[T Document](y []byte, docs *[]T, opts ...JSONOpt) error {
+	dec := yaml.NewDecoder(bytes.NewReader(y))
+	for {
+		var o T
+		if err := unmarshal(dec, &o, opts); err != nil {
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+		*docs = append(*docs, o)
+	}
+	return nil
+}
+
 // Unmarshal converts YAML to JSON then uses JSON to unmarshal into an object,
 // optionally configuring the behavior of the JSON unmarshal.
 func Unmarshal(y []byte, o interface{}, opts ...JSONOpt) error {
@@ -50,6 +69,9 @@ func unmarshal(dec *yaml.Decoder, o interface{}, opts []JSONOpt) error {
 	vo := reflect.ValueOf(o)
 	j, err := yamlToJSON(dec, &vo)
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return err
+		}
 		return fmt.Errorf("error converting YAML to JSON: %v", err)
 	}
 
@@ -114,11 +136,7 @@ func yamlToJSON(dec *yaml.Decoder, jsonTarget *reflect.Value) ([]byte, error) {
 	// Convert the YAML to an object.
 	var yamlObj interface{}
 	if err := dec.Decode(&yamlObj); err != nil {
-		// Functionality changed in v3 which means we need to ignore EOF error.
-		// See https://github.com/go-yaml/yaml/issues/639
-		if !errors.Is(err, io.EOF) {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	// YAML objects are not completely compatible with JSON objects (e.g. you

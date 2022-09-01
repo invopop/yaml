@@ -1,13 +1,17 @@
 package yaml
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type MarshalTest struct {
@@ -63,33 +67,30 @@ type NestedSlice struct {
 func TestUnmarshal(t *testing.T) {
 	y := []byte(``)
 	s1 := UnmarshalString{}
-	e1 := UnmarshalString{}
-	unmarshalEqual(t, y, &s1, &e1)
-
-	y = []byte(`{}`)
-	s1 = UnmarshalString{}
-	e1 = UnmarshalString{}
-	unmarshalEqual(t, y, &s1, &e1)
+	err := Unmarshal(y, &s1)
+	if !errors.Is(err, io.EOF) {
+		t.Errorf("error must be EOF")
+	}
 
 	y = []byte("a: 1")
 	s1 = UnmarshalString{}
-	e1 = UnmarshalString{A: "1"}
-	unmarshalEqual(t, y, &s1, &e1)
+	e11 := UnmarshalString{A: "1"}
+	unmarshalEqual(t, y, &s1, &e11)
 
 	y = []byte(`a: "1"`)
 	s1 = UnmarshalString{}
-	e1 = UnmarshalString{A: "1"}
-	unmarshalEqual(t, y, &s1, &e1)
+	e11 = UnmarshalString{A: "1"}
+	unmarshalEqual(t, y, &s1, &e11)
 
 	y = []byte("a: true")
 	s1 = UnmarshalString{}
-	e1 = UnmarshalString{A: "true"}
-	unmarshalEqual(t, y, &s1, &e1)
+	e11 = UnmarshalString{A: "true"}
+	unmarshalEqual(t, y, &s1, &e11)
 
 	y = []byte("a: 1")
 	s1 = UnmarshalString{}
-	e1 = UnmarshalString{A: "1"}
-	unmarshalEqual(t, y, &s1, &e1)
+	e11 = UnmarshalString{A: "1"}
+	unmarshalEqual(t, y, &s1, &e11)
 
 	y = []byte("a:\n  a: 1")
 	s2 := UnmarshalNestedString{}
@@ -405,4 +406,31 @@ func TestYAMLToJSONDuplicateFields(t *testing.T) {
 	if _, err := YAMLToJSON(data); err == nil {
 		t.Error("expected YAMLtoJSON to fail on duplicate field names")
 	}
+}
+
+func TestUnmarsharlMultipleDocumentFile(t *testing.T) {
+	data := `---
+a: foo
+b: bar
+
+---
+a: foo2
+b: bar2
+
+---
+a: foo3
+b: bar3
+`
+	type Doc struct {
+		A string `json:"a"`
+		B string `json:"b"`
+	}
+	var docs []Doc
+	require.NoError(t, UnmarshalMultipleDocuments([]byte(data), &docs))
+
+	require.Equal(t, 3, len(docs))
+
+	require.Equal(t, "foo", docs[0].A)
+	require.Equal(t, "foo2", docs[1].A)
+	require.Equal(t, "foo3", docs[2].A)
 }
