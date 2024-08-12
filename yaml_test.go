@@ -323,6 +323,12 @@ func TestYAMLToJSON(t *testing.T) {
 			"- t: null\n",
 			`[{"t":null}]`,
 			nil,
+		}, {
+			"obj:\n" +
+				"    z_hello: hello\n" +
+				"    a_world: world\n",
+			`{"obj":{"z_hello":"hello","a_world":"world"}}`,
+			nil,
 		},
 	}
 
@@ -359,40 +365,41 @@ func runCases(t *testing.T, runType RunType, cases []Case) {
 		invMsg = "JSON back to YAML"
 	}
 
-	for _, c := range cases {
-		// Convert the string.
-		t.Logf("converting %s\n", c.input)
-		output, err := f([]byte(c.input))
-		if err != nil {
-			t.Errorf("Failed to convert %s, input: `%s`, err: %v", msg, c.input, err)
-		}
+	for i, c := range cases {
+		t.Run(fmt.Sprintf("%s_%d", msg, i), func(t *testing.T) {
+			// Convert the string.
+			t.Logf("converting %s\n", c.input)
+			output, err := f([]byte(c.input))
+			if err != nil {
+				t.Errorf("Failed to convert %s, input: `%s`, err: %v", msg, c.input, err)
+			}
 
-		// Check it against the expected output.
-		if string(output) != c.output {
-			t.Errorf("Failed to convert %s, input: `%s`, expected `%s`, got `%s`",
-				msg, c.input, c.output, string(output))
-		}
+			// Check it against the expected output.
+			if string(output) != c.output {
+				t.Errorf("Failed to convert %s, input: `%s`, expected `%s`, got `%s`",
+					msg, c.input, c.output, string(output))
+			}
 
-		// Set the string that we will compare the reversed output to.
-		reverse := c.input
-		// If a special reverse string was specified, use that instead.
-		if c.reverse != nil {
-			reverse = *c.reverse
-		}
+			// Set the string that we will compare the reversed output to.
+			reverse := c.input
+			// If a special reverse string was specified, use that instead.
+			if c.reverse != nil {
+				reverse = *c.reverse
+			}
 
-		// Reverse the output.
-		input, err := invF(output)
-		if err != nil {
-			t.Errorf("Failed to convert %s, input: `%s`, err: %v", invMsg, string(output), err)
-		}
+			// Reverse the output.
+			input, err := invF(output)
+			if err != nil {
+				t.Errorf("Failed to convert %s, input: `%s`, err: %v", invMsg, string(output), err)
+			}
 
-		// Check the reverse is equal to the input (or to *c.reverse).
-		if string(input) != reverse {
-			t.Errorf("Failed to convert %s, input: `%s`, expected `%s`, got `%s`",
-				invMsg, string(output), reverse, string(input))
-		}
+			// Check the reverse is equal to the input (or to *c.reverse).
+			if string(input) != reverse {
+				t.Errorf("Failed to convert %s, input: `%s`, expected `%s`, got `%s`",
+					invMsg, string(output), reverse, string(input))
+			}
+		})
 	}
-
 }
 
 // To be able to easily fill in the *Case.reverse string above.
@@ -404,5 +411,19 @@ func TestYAMLToJSONDuplicateFields(t *testing.T) {
 	data := []byte("foo: bar\nfoo: baz\n")
 	if _, err := YAMLToJSON(data); err == nil {
 		t.Error("expected YAMLtoJSON to fail on duplicate field names")
+	}
+}
+
+func BenchmarkJSONToYAML(b *testing.B) {
+	data := []byte(`{"t":"a"}`)
+	for i := 0; i < b.N; i++ {
+		JSONToYAML(data)
+	}
+}
+
+func BenchmarkYAMLToJSON(b *testing.B) {
+	data := []byte("t: a\n")
+	for i := 0; i < b.N; i++ {
+		YAMLToJSON(data)
 	}
 }
