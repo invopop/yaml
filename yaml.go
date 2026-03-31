@@ -16,7 +16,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"gopkg.in/yaml.v3"
+	yaml "github.com/oasdiff/yaml3"
 )
 
 // Marshal the object into JSON then converts JSON to YAML and returns the
@@ -38,11 +38,121 @@ func Marshal(o interface{}) ([]byte, error) {
 // JSONOpt is a decoding option for decoding from JSON format.
 type JSONOpt func(*json.Decoder) *json.Decoder
 
+// YAMLOpt is a decoding option for decoding from YAML format.
+type YAMLOpt func(*yaml.Decoder) *yaml.Decoder
+
 // Unmarshal converts YAML to JSON then uses JSON to unmarshal into an object,
 // optionally configuring the behavior of the JSON unmarshal.
 func Unmarshal(y []byte, o interface{}, opts ...JSONOpt) error {
+	return UnmarshalWithOrigin(y, o, OriginOpt{}, opts...)
+}
+
+// OriginOpt controls origin-tracking behavior in UnmarshalWithOrigin.
+type OriginOpt struct {
+	// Enabled adds __origin__ metadata to maps during unmarshaling.
+	Enabled bool
+	// File is the source file name recorded in origin metadata.
+	File string
+}
+
+// UnmarshalWithOrigin is like Unmarshal but supports origin tracking via OriginOpt.
+func UnmarshalWithOrigin(y []byte, o interface{}, origin OriginOpt, opts ...JSONOpt) error {
+	_, err := UnmarshalWithOriginTree(y, o, origin, opts...)
+	return err
+}
+
+// OriginTree holds __origin__ data extracted from a YAML-decoded map tree.
+// It mirrors the structure of the spec: Fields tracks map children by key,
+// Items tracks slice children by index.
+type OriginTree struct {
+	// Origin is the raw __origin__ value (map[string]any) for this node.
+	Origin any
+	// Fields holds child trees keyed by map key name.
+	Fields map[string]*OriginTree
+	// Items holds child trees for slice elements (index-aligned).
+	Items []*OriginTree
+}
+
+// UnmarshalWithOriginTree is like UnmarshalWithOrigin but strips __origin__
+// from the intermediate map before JSON conversion and returns the extracted
+// origin data as an OriginTree. The caller can apply the tree to Go structs
+// after unmarshaling. When origin tracking is disabled, the returned tree is nil.
+func UnmarshalWithOriginTree(y []byte, o interface{}, origin OriginOpt, opts ...JSONOpt) (*OriginTree, error) {
 	dec := yaml.NewDecoder(bytes.NewReader(y))
-	return unmarshal(dec, o, opts)
+	dec.Origin(origin.Enabled, origin.File)
+
+	// Decode YAML into a generic object.
+	var yamlObj interface{}
+	if err := dec.Decode(&yamlObj); err != nil {
+		if !errors.Is(err, io.EOF) {
+			return nil, fmt.Errorf("error converting YAML to JSON: %v", err)
+		}
+	}
+
+	// Extract __origin__ before JSON conversion so the JSON stays small.
+	var tree *OriginTree
+	if origin.Enabled {
+		tree = extractOrigins(yamlObj)
+	}
+
+	// Convert to JSON (without __origin__) and unmarshal into the target struct.
+	vo := reflect.ValueOf(o)
+	jsonObj, err := convertToJSONableObject(yamlObj, &vo)
+	if err != nil {
+		return nil, fmt.Errorf("error converting YAML to JSON: %v", err)
+	}
+	j, err := json.Marshal(jsonObj)
+	if err != nil {
+		return nil, fmt.Errorf("error converting YAML to JSON: %v", err)
+	}
+	if err := jsonUnmarshal(bytes.NewReader(j), o, opts...); err != nil {
+		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
+	}
+
+	return tree, nil
+}
+
+const originKey = "__origin__"
+
+// extractOrigins recursively extracts and removes __origin__ entries from a
+// YAML-decoded map tree, returning the origin data as an OriginTree.
+func extractOrigins(v any) *OriginTree {
+	switch val := v.(type) {
+	case map[string]any:
+		tree := &OriginTree{}
+		if orig, ok := val[originKey]; ok {
+			tree.Origin = orig
+			delete(val, originKey)
+		}
+		for k, child := range val {
+			if childTree := extractOrigins(child); childTree != nil {
+				if tree.Fields == nil {
+					tree.Fields = make(map[string]*OriginTree)
+				}
+				tree.Fields[k] = childTree
+			}
+		}
+		if tree.Origin == nil && tree.Fields == nil {
+			return nil
+		}
+		return tree
+	case []any:
+		var items []*OriginTree
+		hasChild := false
+		for _, child := range val {
+			childTree := extractOrigins(child)
+			items = append(items, childTree) // may be nil; preserves index alignment
+			if childTree != nil {
+				hasChild = true
+			}
+		}
+		if !hasChild {
+			return nil
+		}
+		return &OriginTree{Items: items}
+	default:
+		return nil
+	}
 }
 
 func unmarshal(dec *yaml.Decoder, o interface{}, opts []JSONOpt) error {
@@ -132,6 +242,7 @@ func yamlToJSON(dec *yaml.Decoder, jsonTarget *reflect.Value) ([]byte, error) {
 	return json.Marshal(jsonObj)
 }
 
+// convertToJSONableObject converts a YAML object to a JSON-compatible object.
 func convertToJSONableObject(yamlObj interface{}, jsonTarget *reflect.Value) (interface{}, error) { //nolint:gocyclo
 	var err error
 

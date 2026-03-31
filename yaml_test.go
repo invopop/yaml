@@ -406,3 +406,156 @@ func TestYAMLToJSONDuplicateFields(t *testing.T) {
 		t.Error("expected YAMLtoJSON to fail on duplicate field names")
 	}
 }
+
+func TestExtractOrigins_Map(t *testing.T) {
+	input := map[string]any{
+		"__origin__": map[string]any{"key": "root"},
+		"info": map[string]any{
+			"__origin__": map[string]any{"key": "info"},
+			"title":      "Test",
+		},
+	}
+
+	tree := extractOrigins(input)
+	if tree == nil {
+		t.Fatal("expected non-nil tree")
+	}
+
+	// Root origin extracted
+	if tree.Origin == nil {
+		t.Fatal("expected root origin")
+	}
+	if tree.Origin.(map[string]any)["key"] != "root" {
+		t.Error("wrong root origin")
+	}
+
+	// __origin__ removed from map
+	if _, ok := input["__origin__"]; ok {
+		t.Error("__origin__ not removed from root map")
+	}
+	infoMap := input["info"].(map[string]any)
+	if _, ok := infoMap["__origin__"]; ok {
+		t.Error("__origin__ not removed from info map")
+	}
+
+	// Child tree extracted
+	infoTree := tree.Fields["info"]
+	if infoTree == nil {
+		t.Fatal("expected info child tree")
+	}
+	if infoTree.Origin.(map[string]any)["key"] != "info" {
+		t.Error("wrong info origin")
+	}
+}
+
+func TestExtractOrigins_Slice(t *testing.T) {
+	input := map[string]any{
+		"items": []any{
+			map[string]any{
+				"__origin__": map[string]any{"key": "item0"},
+				"name":       "first",
+			},
+			"scalar",
+			map[string]any{
+				"__origin__": map[string]any{"key": "item2"},
+				"name":       "third",
+			},
+		},
+	}
+
+	tree := extractOrigins(input)
+	if tree == nil {
+		t.Fatal("expected non-nil tree")
+	}
+
+	itemsTree := tree.Fields["items"]
+	if itemsTree == nil {
+		t.Fatal("expected items child tree")
+	}
+	if len(itemsTree.Items) != 3 {
+		t.Fatalf("expected 3 items, got %d", len(itemsTree.Items))
+	}
+	if itemsTree.Items[0] == nil || itemsTree.Items[0].Origin == nil {
+		t.Error("expected origin for item 0")
+	}
+	if itemsTree.Items[1] != nil {
+		t.Error("expected nil tree for scalar item 1")
+	}
+	if itemsTree.Items[2] == nil || itemsTree.Items[2].Origin == nil {
+		t.Error("expected origin for item 2")
+	}
+
+	// __origin__ removed from slice elements
+	item0 := input["items"].([]any)[0].(map[string]any)
+	if _, ok := item0["__origin__"]; ok {
+		t.Error("__origin__ not removed from item 0")
+	}
+}
+
+func TestExtractOrigins_Nil(t *testing.T) {
+	tree := extractOrigins("scalar")
+	if tree != nil {
+		t.Error("expected nil tree for scalar")
+	}
+
+	tree = extractOrigins(map[string]any{"a": "b"})
+	if tree != nil {
+		t.Error("expected nil tree for map without __origin__")
+	}
+}
+
+type OriginTreeTestStruct struct {
+	Info struct {
+		Title   string `json:"title"`
+		Version string `json:"version"`
+	} `json:"info"`
+}
+
+func TestUnmarshalWithOriginTree(t *testing.T) {
+	yamlData := []byte("info:\n  title: Test\n  version: v1\n")
+
+	var out OriginTreeTestStruct
+	tree, err := UnmarshalWithOriginTree(yamlData, &out, OriginOpt{Enabled: true, File: "test.yaml"})
+	if err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	// Struct populated correctly
+	if out.Info.Title != "Test" {
+		t.Errorf("expected title Test, got %s", out.Info.Title)
+	}
+
+	// Origin tree returned (root mapping has no __origin__, but info does)
+	if tree == nil {
+		t.Fatal("expected non-nil origin tree")
+	}
+
+	// Info subtree with origin
+	infoTree := tree.Fields["info"]
+	if infoTree == nil {
+		t.Fatal("expected info subtree")
+	}
+	if infoTree.Origin == nil {
+		t.Fatal("expected info origin")
+	}
+	originMap := infoTree.Origin.(map[string]any)
+	if originMap["key"] == nil {
+		t.Error("expected key in info origin")
+	}
+}
+
+func TestUnmarshalWithOriginTree_Disabled(t *testing.T) {
+	yamlData := []byte("info:\n  title: Test\n")
+
+	var out OriginTreeTestStruct
+	tree, err := UnmarshalWithOriginTree(yamlData, &out, OriginOpt{Enabled: false})
+	if err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if tree != nil {
+		t.Error("expected nil tree when origin is disabled")
+	}
+	if out.Info.Title != "Test" {
+		t.Errorf("expected title Test, got %s", out.Info.Title)
+	}
+}

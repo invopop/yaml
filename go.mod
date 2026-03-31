@@ -1,5 +1,5 @@
-module github.com/invopop/yaml
+module github.com/oasdiff/yaml
 
-go 1.14
+go 1.22.5
 
-require gopkg.in/yaml.v3 v3.0.1
+require github.com/oasdiff/yaml3 v0.0.4
